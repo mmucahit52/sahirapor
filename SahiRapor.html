@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Şahi Çelik · Günlük Şantiye Raporu</title>
+<style>
+  :root{
+    --ink:#16191d; --slate:#3a424b; --steel:#6b7681; --muted:#9aa3ac;
+    --paper:#ffffff; --app:#eceef1; --hair:#d6dadf; --hair2:#e7eaee;
+    --accent:#189087;          /* marka turkuazı */
+    --done:#2f7d34; --prog:#b9770a; --plan:#1d6fb8; --risk:#c0392b; --mat:#4a5560;
+    --done-bg:#eaf4ea; --prog-bg:#fbf2e0; --plan-bg:#e8f1fa; --risk-bg:#fbeae8; --mat-bg:#eef1f3;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--ink);background:var(--app);font-size:14px;line-height:1.45;}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{display:grid;grid-template-columns:440px 1fr;min-height:100vh;}
+  .rail{background:var(--ink);color:#e9ecef;padding:0 0 60px;position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;}
+  .stage{padding:26px 24px 80px;overflow-y:auto;}
+
+  /* ---------- RAIL (kontrol paneli) ---------- */
+  .brandbar{padding:22px 24px 18px;border-bottom:1px solid #2a2f36;}
+  .brandbar .logo{font-weight:800;letter-spacing:.14em;font-size:18px;}
+  .brandbar .logo b{color:var(--accent);}
+  .brandbar .sub{color:#9aa3ac;font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-top:4px;}
+
+  .rail h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8b949e;margin:26px 24px 10px;font-weight:700;}
+  .field{padding:0 24px;margin-bottom:12px;}
+  .field label{display:block;font-size:11px;color:#9aa3ac;letter-spacing:.04em;margin-bottom:5px;text-transform:uppercase;}
+  .field input,.field textarea,.field select{
+    width:100%;background:#1f242b;border:1px solid #2f353d;color:#eef1f4;border-radius:7px;
+    padding:9px 11px;font:inherit;font-size:13px;outline:none;
+  }
+  .field textarea{resize:vertical;min-height:64px;line-height:1.4;}
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#1f242b;border:1px solid #2f353d;color:#cdd4da;border-radius:999px;padding:7px 12px;font-size:12.5px;cursor:pointer;user-select:none;}
+  .chip .ic{font-size:14px;line-height:1;}
+  .chip:hover{border-color:#4a5560;}
+  .chip.sel{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .siteSel{padding:0 24px;margin:14px 0 4px;}
+  .siteSel select{font-weight:600;font-size:14px;padding:11px;}
+
+  /* iş kalemi satırları */
+  .items{padding:0 24px;}
+  .group{margin-bottom:16px;}
+  .group .ghead{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#b9c1c9;font-weight:700;margin-bottom:8px;}
+  .dot{width:9px;height:9px;border-radius:2px;flex:none;}
+  .dot.done{background:var(--done);} .dot.prog{background:var(--prog);}
+  .dot.plan{background:var(--plan);} .dot.mat{background:var(--mat);}
+  .itemrow{display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;}
+  .itemrow input{flex:1;background:#1f242b;border:1px solid #2f353d;color:#eef1f4;border-radius:6px;padding:7px 9px;font:inherit;font-size:12.5px;}
+  .itemrow input.tag{flex:0 0 92px;color:#c9d0d7;}
+  .itemrow input:focus{border-color:var(--accent);outline:none;}
+  .xbtn{flex:none;width:30px;border:1px solid #2f353d;background:#262c33;color:#9aa3ac;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;}
+  .xbtn:hover{color:#fff;border-color:var(--risk);background:#3a2326;}
+  .addbtn{width:100%;background:transparent;border:1px dashed #3a424b;color:#9aa3ac;border-radius:7px;padding:8px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.03em;}
+  .addbtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* foto */
+  .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+  .thumb{position:relative;aspect-ratio:1;border-radius:7px;overflow:hidden;background:#1f242b;border:1px solid #2f353d;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb .rm{position:absolute;top:4px;right:4px;width:22px;height:22px;border:none;border-radius:5px;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;font-size:13px;line-height:22px;text-align:center;}
+  .thumb .rm:hover{background:var(--risk);}
+  .upl{display:block;border:1px dashed #3a424b;border-radius:7px;padding:14px;text-align:center;color:#9aa3ac;cursor:pointer;font-size:12px;}
+  .upl:hover{border-color:var(--accent);color:var(--accent);}
+  .upl input{display:none;}
+
+  /* aksiyon butonları */
+  .actions{padding:18px 24px;border-top:1px solid #2a2f36;margin-top:18px;display:grid;gap:9px;}
+  .agroup{display:grid;gap:8px;}
+  .agroup + .agroup{margin-top:12px;padding-top:14px;border-top:1px solid #2a2f36;}
+  .alabel{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7681;font-weight:700;}
+  .btn{border:none;border-radius:8px;padding:12px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:7px;}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.primary:hover{background:#13716a;}
+  .btn.ghost{background:#262c33;color:#dfe4e9;border:1px solid #333a42;}
+  .btn.ghost:hover{border-color:#4a5560;}
+  .btn.tiny{padding:10px;font-size:12px;}
+  .actrow{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .savehint{font-size:11px;color:#6b7681;text-align:center;padding:0 24px;margin-top:-4px;}
+
+  /* ---------- A4 SAYFA (önizleme = PDF) ---------- */
+  .page{
+    background:var(--paper);width:210mm;height:297mm;margin:0 auto;
+    box-shadow:0 2px 24px rgba(0,0,0,.14);padding:15mm 16mm 12mm;color:var(--ink);
+    display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;
+  }
+  .page + .page{margin-top:26px;}
+  .pbody{flex:1;overflow:hidden;}
+  .pbody .blk{margin:0 0 14px;}
+  .pbody .blk:last-child{margin-bottom:0;}
+  .pbody .blk > *{margin-top:0;}
+  .pfoot{
+    flex:none;margin-top:10px;padding-top:8px;border-top:1px solid var(--hair);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    font-size:9.5px;color:var(--muted);letter-spacing:.04em;
+  }
+  .pfoot .fl{font-weight:700;color:var(--slate);letter-spacing:.08em;white-space:nowrap;}
+  .pfoot .fc{flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pfoot .fr{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .r-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:14px;}
+  .r-head .keyline{height:5px;background:var(--accent);width:54px;margin-bottom:12px;}
+  .r-brand{font-size:22px;font-weight:800;letter-spacing:.12em;}
+  .r-brand b{color:var(--accent);}
+  .r-doctype{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--steel);margin-top:3px;}
+  .r-meta{text-align:right;font-size:12px;color:var(--slate);}
+  .r-meta .no{font-weight:700;color:var(--ink);font-size:13px;letter-spacing:.04em;}
+  .r-meta div{margin-top:2px;}
+
+  .r-site{margin-top:18px;display:flex;justify-content:space-between;align-items:baseline;gap:16px;}
+  .r-site .name{font-size:20px;font-weight:800;letter-spacing:.01em;}
+  .r-site .loc{font-size:12.5px;color:var(--steel);}
+
+  /* üst bilgi şeridi */
+  .r-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:14px;border:1px solid var(--hair);border-radius:8px;overflow:hidden;}
+  .r-strip .cell{padding:11px 14px;border-right:1px solid var(--hair);}
+  .r-strip .cell:last-child{border-right:none;}
+  .r-strip .k{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .r-strip .v{font-size:15px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;}
+  .r-strip .v.sm{font-size:13px;font-weight:600;}
+
+  /* iş bölümleri */
+  .r-sec{margin-top:20px;page-break-inside:avoid;}
+  .r-sec .sh{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .r-sec .sh .bar{width:4px;height:15px;border-radius:2px;}
+  .r-sec .sh h4{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
+  .r-sec .sh .ct{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .bar.done{background:var(--done);} .bar.prog{background:var(--prog);}
+  .bar.plan{background:var(--plan);} .bar.mat{background:var(--mat);} .bar.risk{background:var(--risk);}
+
+  ul.r-list{list-style:none;margin:0;padding:0;}
+  ul.r-list li{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--hair2);font-size:13px;align-items:baseline;}
+  ul.r-list li:last-child{border-bottom:none;}
+  ul.r-list li .lt{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+  .lt.done{background:var(--done-bg);color:var(--done);}
+  .lt.prog{background:var(--prog-bg);color:var(--prog);}
+  .lt.plan{background:var(--plan-bg);color:var(--plan);}
+  .lt.mat{background:var(--mat-bg);color:var(--mat);}
+  ul.r-list li .lx{flex:1;}
+  .r-empty{font-size:12px;color:var(--muted);font-style:italic;padding:4px 0;}
+
+  .r-note{margin-top:6px;font-size:13px;background:#fafbfc;border:1px solid var(--hair);border-left:3px solid var(--risk);border-radius:6px;padding:11px 13px;white-space:pre-wrap;line-height:1.5;}
+
+  /* foto galeri */
+  .r-photos{margin-top:20px;page-break-inside:avoid;}
+  .pg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:9px;}
+  .pg .ph{aspect-ratio:4/3;border-radius:7px;overflow:hidden;border:1px solid var(--hair);background:#f4f5f7;}
+  .pg .ph img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  .r-foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;align-items:flex-end;}
+  .r-foot .prep .cap{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+  .r-foot .prep .pname{font-size:15px;font-weight:700;margin-top:4px;color:var(--ink);}
+  .r-foot .pageno{font-size:10px;color:var(--muted);letter-spacing:.08em;}
+
+  img.logoimg{height:40px;width:auto;display:block;margin-bottom:8px;}
+
+  /* ---------- PRINT ---------- */
+  @page{size:A4;margin:0;}
+  @media screen{
+    .page{zoom:0.9;}
+  }
+  @media print{
+    body{background:#fff;}
+    .rail{display:none;}
+    .wrap{display:block;}
+    .stage{padding:0;overflow:visible;}
+    .page{zoom:1;height:296mm;box-shadow:none;margin:0;page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+    .page + .page{margin-top:0;}
+  }
+  @media(max-width:920px){
+    .wrap{grid-template-columns:1fr;}
+    .rail{position:static;height:auto;}
+    .page{width:auto;height:auto;zoom:1;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ====== KONTROL PANELİ ====== -->
+  <aside class="rail">
+    <div class="brandbar">
+      <div class="logo">ŞAHİ <b>ÇELİK</b></div>
+      <div class="sub">Günlük Şantiye Raporu</div>
+    </div>
+
+    <h3>Genel Bilgi</h3>
+    <div class="field"><label>Şantiye / Proje Adı</label><input id="f_name" oninput="upd('name',this.value)"></div>
+    <div class="field"><label>Lokasyon</label><input id="f_loc" oninput="upd('loc',this.value)"></div>
+    <div class="field"><label>Rapor Tarihi</label><input id="f_date" type="date" oninput="upd('date',this.value)"></div>
+    <div class="field"><label>Hava Durumu</label><div class="chips" id="weatherChips"></div></div>
+
+    <h3>Personel</h3>
+    <div class="field"><label>Şantiye Şefi</label><input id="f_chief" oninput="upd('chief',this.value)"></div>
+    <div class="field"><label>Usta(lar)</label>
+      <div id="ustaList"></div>
+      <button class="addbtn" onclick="addUsta()">+ Usta ekle</button>
+    </div>
+    <div class="field"><label>Ek Personel / Taşeron (ops.)</label><input id="f_extra" placeholder="Örn. 2 kaynakçı, 1 vinç operatörü" oninput="upd('extra',this.value)"></div>
+    <div class="field"><label>Hazırlayan / Şantiye Sorumlusu (Ad Soyad)</label><input id="f_preparer" placeholder="Örn. Ahmet Yılmaz" oninput="upd('preparer',this.value)"></div>
+
+    <h3>İş Durumu</h3>
+    <div class="items">
+      <div class="group">
+        <div class="ghead"><span class="dot done"></span>Tamamlanan İşler</div>
+        <div id="g_done"></div>
+        <button class="addbtn" onclick="addItem('done')">+ Tamamlanan ekle</button>
+      </div>
+      <div class="group">
+        <div class="ghead"><span class="dot prog"></span>Devam Eden İşler</div>
+        <div id="g_prog"></div>
+        <button class="addbtn" onclick="addItem('prog')">+ Devam eden ekle</button>
+      </div>
+      <div class="group">
+        <div class="ghead"><span class="dot plan"></span>Planlanan İşler</div>
+        <div id="g_plan"></div>
+        <button class="addbtn" onclick="addItem('plan')">+ Planlanan ekle</button>
+      </div>
+      <div class="group">
+        <div class="ghead"><span class="dot mat"></span>Malzeme / Lojistik Durumu</div>
+        <div id="g_mat"></div>
+        <button class="addbtn" onclick="addItem('mat')">+ Malzeme/lojistik ekle</button>
+      </div>
+    </div>
+
+    <h3>Engeller / Genel Notlar</h3>
+    <div class="field"><textarea id="f_notes" placeholder="Gecikmeler, riskler, beklenen sevkiyatlar, koordinasyon notları..." oninput="upd('notes',this.value)"></textarea></div>
+
+    <h3>Fotoğraflar</h3>
+    <div class="field">
+      <label class="upl">📷 Fotoğraf ekle (birden fazla seçebilirsiniz)
+        <input type="file" accept="image/*" multiple onchange="addPhotos(this.files);this.value=''">
+      </label>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <div class="actions">
+      <div class="agroup">
+        <div class="alabel">Adım 1 — Raporu oluştur</div>
+        <button class="btn primary" onclick="printOne()">⤓ Bu Şantiyeyi PDF Yap / Yazdır</button>
+        <button class="btn ghost tiny" onclick="resetSite()">＋ Yeni Rapor (formu temizle)</button>
+      </div>
+      <div class="agroup">
+        <div class="alabel">Adım 2 — Tüm PDF'leri birleştir</div>
+        <label class="btn ghost tiny" style="cursor:pointer;">🗎 Gelen PDF'leri Seç ve Birleştir
+          <input type="file" accept="application/pdf,.pdf" multiple style="display:none" onchange="mergePdfs(this.files);this.value=''"></label>
+      </div>
+    </div>
+    <div class="savehint" id="savehint">Formdaki bilgiler tarayıcıya otomatik kaydedilir.</div>
+  </aside>
+
+  <!-- ====== ÖNİZLEME / RAPOR ====== -->
+  <main class="stage" id="stage"></main>
+</div>
+
+<script>
+/* Mobil/yerel dosyada bir hata olursa ekranda göster (sessizce kalmasın) */
+window.addEventListener('error', function(e){
+  var el=document.getElementById('savehint');
+  if(el){ el.style.color='#ff8a80'; el.textContent='Hata: '+((e&&e.message)||'bilinmeyen'); }
+});
+/* =========================================================
+   ŞAHİ ÇELİK — Günlük Şantiye Raporu
+   Veri yapısı tamamen düzenlenebilir. Her gün form üzerinden
+   güncelleyin -> "PDF Yap / Yazdır" -> tarayıcıdan "PDF olarak kaydet".
+   ========================================================= */
+
+const CATS = {done:'Tamamlanan', prog:'Devam Eden', plan:'Planlanan', mat:'Malzeme/Lojistik'};
+const WEATHER = [
+  {k:'acik',     i:'☀️', t:'Açık'},
+  {k:'parcali',  i:'⛅', t:'Parçalı Bulutlu'},
+  {k:'bulutlu',  i:'☁️', t:'Bulutlu'},
+  {k:'yagmurlu', i:'🌧️', t:'Yağmurlu'},
+  {k:'karli',    i:'❄️', t:'Karlı'},
+  {k:'ruzgarli', i:'💨', t:'Rüzgârlı'},
+  {k:'sisli',    i:'🌫️', t:'Sisli'}
+];
+function weatherLabel(k){ const w=WEATHER.find(x=>x.k===k); return w ? (w.i+' '+w.t) : '—'; }
+const LS_KEY = 'sahi_santiye_rapor_v2';
+const LOGO = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA5OTAuNjIgMjg5LjUiPgogIDwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAzMC41LjEsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiAyLjEuNCBCdWlsZCAzKSAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5zdDAgewogICAgICAgIGZpbGw6ICMxODkwODc7CiAgICAgIH0KCiAgICAgIC5zdDEgewogICAgICAgIGZpbGw6ICM0NDQ7CiAgICAgIH0KCiAgICAgIC5zdDIgewogICAgICAgIGZpbGw6ICMwYjFmMWM7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxnPgogICAgPHBhdGggY2xhc3M9InN0MiIgZD0iTTM1Ny44NCwxOTIuNzRsLTMsNC4yM2M3LjM3LjE0LDEyLjI4LDUuMDUsMTIuMjgsMTEuNiwwLDEwLjIzLTEyLjI4LDE1LjE1LTIzLjg4LDEyLjU1di01LjMyYzcuMzcuMjcsMTIuNjktMS4wOSwxMi42OS02LjE0LDAtMy44Mi0zLjE0LTcuMS0xMS43NC02bC0xLjkxLTMuNjgsNC42NC03LjY0Yy0xMy4zNy0yLjMyLTIzLjQ3LTExLjE5LTI2LjQ3LTIzLjMzbDEyLjU1LTUuNzNjMi43Myw4LjczLDkuOTYsMTUuNDIsMjAuNjEsMTUuNDIsOC44NywwLDE2LjUxLTQuNjQsMTYuNTEtMTQuMzMsMC04LjQ2LTUuNTktMTIuMTQtMTYuMS0xNi4zOGwtNi4yOC0yLjQ2Yy0xMy43OC01LjQ2LTIzLjYxLTEyLjk2LTIzLjYxLTI2Ljc1LDAtMTUuNjksMTIuOTYtMjUuNTIsMjguOTMtMjUuNTJzMjYuMiw5Ljk2LDMwLjI5LDIwLjMzbC0xMS42LDYuMjhjLTMuOTYtOC4xOS05LjgyLTEyLjY5LTE4LjE1LTEyLjY5cy0xNC4xOSw0LjIzLTE0LjE5LDExLjc0YzAsNS44NywzLjU1LDEwLjM3LDE0LjQ2LDE0Ljc0bDYuNTUsMi41OWMxNi41MSw2LjU1LDI1LjY1LDE0LjA2LDI1LjY1LDI4LjI1LjAyLDE3LjE5LTEzLjQ5LDI2Ljc0LTI4LjIzLDI4LjI0Ii8+CiAgICA8cGF0aCBjbGFzcz0ic3QyIiBkPSJNNDU3LjczLDE3MS43MmgtNDMuMzlsLTcuNSwxOS43OWgtMTYuNjVsMzcuOC05Ni44OWgxNS45N2wzNy45Myw5Ni44OWgtMTYuNjVsLTcuNTEtMTkuNzlaTTQ1Mi40MSwxNTcuNGwtMTYuMzctNDMuMzktMTYuMzcsNDMuMzloMzIuNzRaIi8+CiAgICA8cG9seWdvbiBjbGFzcz0ic3QyIiBwb2ludHM9IjU2Ny4zMSA5NC42MiA1NjcuMzEgMTkxLjUxIDU1MS44OSAxOTEuNTEgNTUxLjg5IDE1MC41NyA1MDguMjIgMTUwLjU3IDUwOC4yMiAxOTEuNTEgNDkyLjgxIDE5MS41MSA0OTIuODEgOTQuNjIgNTA4LjIyIDk0LjYyIDUwOC4yMiAxMzYuMjUgNTUxLjg5IDEzNi4yNSA1NTEuODkgOTQuNjIgNTY3LjMxIDk0LjYyIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QyIiBkPSJNNTgzLjY5LDk0LjYyaDE1LjQydjk2Ljg5aC0xNS40MnYtOTYuODlaTTU4My45Niw2Ny4xOWgxNS4xNXYxNS4wMWgtMTUuMTV2LTE1LjAxWiIvPgogICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTcxOS42LDE2NC45bDExLjE5LDcuOTFjLTkuMjgsMTQuNDYtMjMuMiwxOS4yNC0zNS4wNywxOS45MmwtMyw0LjIzYzcuMzcuMTQsMTIuMjgsNS4wNSwxMi4yOCwxMS42LDAsMTAuMjMtMTIuMjgsMTUuMTUtMjMuODgsMTIuNTV2LTUuMzJjNy4zNy4yNywxMi42OS0xLjA5LDEyLjY5LTYuMTQsMC0zLjgyLTMuMTQtNy4xLTExLjc0LTZsLTEuOTEtMy42OCw0LjY0LTcuNjRjLTIzLjYxLTMuMjgtNDIuMTctMjIuMTEtNDIuMTctNDkuMjYsMC0yOS44OCwyMi41Mi00OS44MSw0OS42Ny00OS44MSwxMi41NSwwLDI4LjI1LDQuMjMsMzguNDgsMjAuMDZsLTExLjE5LDcuOTFjLTcuMS05LjgyLTE3LjQ3LTEzLjI0LTI2Ljg4LTEzLjI0LTE4Ljk3LDAtMzQuMjUsMTMuNzgtMzQuMjUsMzUuMDdzMTUuNDIsMzUuMDcsMzQuMzksMzUuMDdjOS41NiwwLDE5LjY2LTMuNCwyNi43NS0xMy4yMyIvPgogICAgPHBvbHlnb24gY2xhc3M9InN0MCIgcG9pbnRzPSI3OTkuMTYgMTc3LjE4IDc5OS4xNiAxOTEuNTEgNzQ0LjQ0IDE5MS41MSA3NDQuNDQgOTQuNjIgNzk3LjkzIDk0LjYyIDc5Ny45MyAxMDguOTUgNzU5Ljg2IDEwOC45NSA3NTkuODYgMTM1LjgzIDc5Mi4wNyAxMzUuODMgNzkyLjA3IDE0OS43NSA3NTkuODYgMTQ5Ljc1IDc1OS44NiAxNzcuMTggNzk5LjE2IDE3Ny4xOCIvPgogICAgPHBvbHlnb24gY2xhc3M9InN0MCIgcG9pbnRzPSI4NjguNzYgMTc3LjE4IDg2OC43NiAxOTEuNTEgODEzLjM1IDE5MS41MSA4MTMuMzUgOTQuNjIgODI4Ljc4IDk0LjYyIDgyOC43OCAxNzcuMTggODY4Ljc2IDE3Ny4xOCIvPgogICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTg4Mi4yNyw5NC42MmgxNS40MnY5Ni44OWgtMTUuNDJ2LTk2Ljg5Wk04ODIuNTQsNjcuMTloMTUuMTV2MTUuMDFoLTE1LjE1di0xNS4wMVoiLz4KICAgIDxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iOTQwLjU0IDE0OS44OSA5MjkuMzUgMTYzLjEzIDkyOS4zNSAxOTEuNTEgOTEzLjkzIDE5MS41MSA5MTMuOTMgOTQuNjIgOTI5LjM1IDk0LjYyIDkyOS4zNSAxNDIuNzkgOTY5Ljg4IDk0LjYyIDk4Ny4zNSA5NC42MiA5NDkuODIgMTM4Ljk3IDk5MC42MiAxOTEuNTEgOTczLjQzIDE5MS41MSA5NDAuNTQgMTQ5Ljg5Ii8+CiAgPC9nPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yNzYuMzksMjc1Ljg3djEyLjA4YzAsLjc5LjY0LDEuNDMsMS40MywxLjQzaDY1Ljk5YzEuMDksMCwxLjc4LTEuMTksMS4yNC0yLjE0LTQuODktOC42MS05LjYxLTE2LjcyLTE0LjAyLTI1LTEuNjUtMy4xLTMuNjMtMy45OS03LjAzLTMuOTgtMzUuNjUuMTMtNzEuMy4wOC0xMDYuOTUuMDhoLTQuODljLS43OSwwLTEuNDMtLjY0LTEuNDMtMS40M1YxMTYuMDNjMC0xLjQzLDEuODctMS45NywyLjY0LS43Ni4yNi40LjQ5Ljc5LjcxLDEuMTgsNS40MSw5LjQ0LDEwLjcyLDE4LjkzLDE2LjI0LDI4LjMuODcsMS40OCwyLjU3LDMuNDUsMy45NCwzLjQ4LDkuODguMjcsMTkuNzguMTgsMzAuNTcuMTYsMS4xLDAsMS43OS0xLjE5LDEuMjQtMi4xNC0yNy44Ny00OC41OS01NS4yOC05Ni4zNy04Mi42Ny0xNDQuMTItLjM1LS44OC0xLjI5LTEuMzYtMi4xOS0xLjE0LS45Mi4yMy0xLjUzLDEuMTQtMS40LDIuMDl2Mjg0Ljg3YzAsLjc5LjY0LDEuNDMsMS40MywxLjQzaDY3LjA1Yy43OSwwLDEuNDMtLjY0LDEuNDMtMS40M3YtMTIuMDhjMC0uNzkuNjQtMS40MywxLjQzLTEuNDNoMjMuODNjLjc3LDAsMS40MS42NCwxLjQxLDEuNDMiLz4KICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTY0Ljg2LDYwLjk3YzEuODktMy4zNCwyLjkzLTcuMDksMy0xMC45Mi4yOC0xNi4wNS4xMy0zMi4xLjExLTQ4LjE1di0uMDZjLjA1LS44Mi0uNS0xLjU3LTEuMjktMS43OC0uOC0uMjEtMS42NS4xOC0yLjAxLjk0LTM2LDYyLjY3LTcxLjk5LDEyNS4zMy0xMDcuOTgsMTg4LS40OC44NC4xMiwxLjg5LDEuMDksMS44OWg3Ni45NmMuNywwLDEuMjYuNTYsMS4yNiwxLjI2djY2LjQ2YzAsLjctLjU3LDEuMjYtMS4yNiwxLjI2aC01LjE5Yy0zMy4zNywwLTY2Ljc1LjUzLTEwMC4wOS0uMzEtMTAuNDUtLjI2LTE2LjUzLDIuNjEtMjAuNDgsMTIuMTEtMi4zLDUuNTItNS42NywxMC41OS04LjgxLDE1Ljk0LS40OS44NC4xMiwxLjg5LDEuMDksMS44OWg2Ny42OGMuNywwLDEuMjYtLjU2LDEuMjYtMS4yNnYtMTIuNTRjMC0uNy41Ni0xLjI2LDEuMjYtMS4yNmgyNC4xN2MuNywwLDEuMjYuNTYsMS4yNiwxLjI2djEyLjU0YzAsLjcuNTYsMS4yNiwxLjI2LDEuMjZoNjguMjNjLjcsMCwxLjI2LS41NiwxLjI2LTEuMjZ2LTEyNy44NGMwLS43LS41Ni0xLjI2LTEuMjYtMS4yNmgtNTUuNDljLS45NiwwLTEuNTctMS4wNC0xLjEtMS44OCwxLjExLTEuOTksMi4wMi0zLjYyLDIuOTUtNS4yNCwxNy40MS0zMC4zMywzNC44OC02MC42Miw1Mi4xMi05MS4wNSIvPgo8L3N2Zz4=";
+
+function blankSite(name){
+  return {name:name||'', loc:'', date:today(), weather:'', chief:'', usta:[], extra:'', preparer:'',
+          done:[], prog:[], plan:[], mat:[], notes:'', photos:[]};
+}
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function trDate(iso){
+  if(!iso) return '—';
+  try{ return new Date(iso+'T00:00').toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'}); }
+  catch(e){ return iso; }
+}
+
+/* ---- Örnek veri: yüklediğiniz WhatsApp raporundan türetildi (tek şantiye) ---- */
+function seed(){
+  const s = blankSite('Cevecide Şantiyesi');
+  s.loc = 'Saha — Etap 1 & 2';
+  s.chief = 'Şantiye Şefi';
+  s.usta = ['Ahmet Y.','Mehmet K.'];
+  s.done = [
+    {tag:'Etap', text:'Konsol kaynakları tamamlandı'},
+    {tag:'1. Etap', text:'Çelik kısmından geriye sadece gergi çubukları kaldı'}
+  ];
+  s.prog = [
+    {tag:'Etap', text:'Çatı kaplaması başlandı — muhtemelen bu gece bitecek'}
+  ];
+  s.plan = [
+    {tag:'Etap', text:'Karot işlemine 2-3 gün içinde başlanması planlanıyor'}
+  ];
+  s.mat = [
+    {tag:'2. Etap', text:'Çatı kaplaması sahada; dereler bekleniyor (villa yapıdan gelecek, bugün görüşüldü hazır, nakliye ayarlanıyor)'},
+    {tag:'Karot', text:'Karot uçları alındı, yarın gönderilecek'}
+  ];
+  s.notes = '2. Etap çatı kaplaması derelerin sahaya ulaşmamasından dolayı başlatılamıyor — kritik takip.';
+  return [s];
+}
+
+/* ---- durum yükle (tek şantiye) ---- */
+let DATA, cur = 0;
+(function init(){
+  let loaded = null;
+  try{ const raw = localStorage.getItem(LS_KEY); if(raw) loaded = JSON.parse(raw); }catch(e){}
+  DATA = (loaded && loaded.length) ? [loaded[0]] : seed();
+  switchSite(0);
+})();
+
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+       flash('Kaydedildi ✓'); }
+  catch(e){ flash('Otomatik kayıt sığmadı (fotoğraflar büyük olabilir) — JSON yedeği alın.'); }
+}
+let flashT;
+function flash(msg){
+  const el=document.getElementById('savehint'); el.textContent=msg;
+  clearTimeout(flashT); flashT=setTimeout(()=>el.textContent='Değişiklikler tarayıcıya otomatik kaydedilir.',1800);
+}
+
+function switchSite(i){
+  cur=+i;
+  const s=DATA[cur];
+  document.getElementById('f_name').value=s.name||'';
+  document.getElementById('f_loc').value=s.loc||'';
+  document.getElementById('f_date').value=s.date||today();
+  renderWeather();
+  document.getElementById('f_chief').value=s.chief||'';
+  normalizeUsta(s); renderUstalar();
+  document.getElementById('f_extra').value=s.extra||'';
+  document.getElementById('f_preparer').value=s.preparer||'';
+  document.getElementById('f_notes').value=s.notes||'';
+  renderItems(); renderThumbs(); render();
+}
+
+function upd(key,val){
+  DATA[cur][key]=val;
+  render(); save();
+}
+
+/* ---- hava durumu (ikonlu seçim) ---- */
+function renderWeather(){
+  const box=document.getElementById('weatherChips'); if(!box) return;
+  box.innerHTML = WEATHER.map(w=>
+    '<span class="chip'+(DATA[cur].weather===w.k?' sel':'')+'" onclick="setWeather(\''+w.k+'\')">'+
+      '<span class="ic">'+w.i+'</span>'+w.t+'</span>'
+  ).join('');
+}
+function setWeather(k){
+  DATA[cur].weather = (DATA[cur].weather===k) ? '' : k;  // tekrar tıklayınca kaldırır
+  renderWeather(); render(); save();
+}
+
+/* ---- ustalar (eklemeli isim listesi) ---- */
+function normalizeUsta(s){
+  if(typeof s.usta==='string'){
+    s.usta = s.usta.trim() ? s.usta.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  } else if(!Array.isArray(s.usta)){ s.usta=[]; }
+}
+function renderUstalar(){
+  const box=document.getElementById('ustaList'); if(!box) return;
+  box.innerHTML = DATA[cur].usta.map((u,idx)=>
+    '<div class="itemrow"><input placeholder="Usta adı soyadı" value="'+esc(u)+'" oninput="setUsta('+idx+',this.value)">'+
+    '<button class="xbtn" title="Sil" onclick="delUsta('+idx+')">×</button></div>'
+  ).join('');
+}
+function addUsta(){ DATA[cur].usta.push(''); renderUstalar(); render(); save(); }
+function setUsta(idx,v){ DATA[cur].usta[idx]=v; render(); save(); }
+function delUsta(idx){ DATA[cur].usta.splice(idx,1); renderUstalar(); render(); save(); }
+
+/* ---- iş kalemleri ---- */
+function renderItems(){
+  ['done','prog','plan','mat'].forEach(cat=>{
+    const box=document.getElementById('g_'+cat); box.innerHTML='';
+    DATA[cur][cat].forEach((it,idx)=>{
+      const row=document.createElement('div'); row.className='itemrow';
+      row.innerHTML =
+        '<input class="tag" placeholder="Bölüm/Etap" value="'+esc(it.tag||'')+'" oninput="setItem(\''+cat+'\','+idx+',\'tag\',this.value)">'+
+        '<input placeholder="Açıklama" value="'+esc(it.text||'')+'" oninput="setItem(\''+cat+'\','+idx+',\'text\',this.value)">'+
+        '<button class="xbtn" title="Sil" onclick="delItem(\''+cat+'\','+idx+')">×</button>';
+      box.appendChild(row);
+    });
+  });
+}
+function addItem(cat){ DATA[cur][cat].push({tag:'',text:''}); renderItems(); render(); save(); }
+function setItem(cat,idx,k,v){ DATA[cur][cat][idx][k]=v; render(); save(); }
+function delItem(cat,idx){ DATA[cur][cat].splice(idx,1); renderItems(); render(); save(); }
+
+/* ---- fotoğraflar (otomatik küçültme) ---- */
+function addPhotos(files){
+  [...files].forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=1280, sc=Math.min(1,max/Math.max(img.width,img.height));
+        const c=document.createElement('canvas');
+        c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        DATA[cur].photos.push(c.toDataURL('image/jpeg',0.72));
+        renderThumbs(); render(); save();
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(f);
+  });
+}
+function renderThumbs(){
+  const box=document.getElementById('thumbs'); box.innerHTML='';
+  DATA[cur].photos.forEach((p,idx)=>{
+    const d=document.createElement('div'); d.className='thumb';
+    d.innerHTML='<img src="'+p+'"><button class="rm" onclick="delPhoto('+idx+')">×</button>';
+    box.appendChild(d);
+  });
+}
+function delPhoto(idx){ DATA[cur].photos.splice(idx,1); renderThumbs(); render(); save(); }
+
+/* ---- RAPOR (önizleme) ---- */
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ---- rapor blokları ---- */
+function listHTML(cat, items){
+  if(!items.length) return '<div class="r-empty">Kayıt girilmedi.</div>';
+  return '<ul class="r-list">'+items.map(it=>{
+    const tag = it.tag? '<span class="lt '+cat+'">'+esc(it.tag)+'</span>' : '';
+    return '<li>'+tag+'<span class="lx">'+esc(it.text)+'</span></li>';
+  }).join('')+'</ul>';
+}
+function secHeadHTML(cat,label,count,cont){
+  return '<div class="sh"><span class="bar '+cat+'"></span><h4>'+label+(cont?' (devam)':'')+'</h4>'+
+    '<span class="ct">'+count+' kalem</span></div>';
+}
+function blocksFor(s){
+  const B=[];
+  B.push('<div class="blk"><div class="r-head">'+
+      '<div><div class="keyline"></div><img class="logoimg" src="'+LOGO+'" alt="Şahi Çelik" style="height:40px;width:auto;display:block;margin-bottom:8px;">'+
+        '<div class="r-doctype">Günlük Şantiye İlerleme Raporu</div></div>'+
+      '<div class="r-meta">'+
+        '<div>'+trDate(s.date)+'</div>'+
+        '<div>Hava: '+weatherLabel(s.weather)+'</div></div>'+
+    '</div></div>');
+  B.push('<div class="blk"><div class="r-site"><div class="name">'+(esc(s.name)||'İsimsiz Şantiye')+'</div>'+
+    '<div class="loc">'+(esc(s.loc)||'')+'</div></div></div>');
+  const total=s.done.length+s.prog.length+s.plan.length+s.mat.length;
+  const ustaArr = Array.isArray(s.usta) ? s.usta.filter(Boolean) : (s.usta? [String(s.usta)] : []);
+  const ustaVal = ustaArr.length ? esc(ustaArr.join(', ')) : '—';
+  B.push('<div class="blk"><div class="r-strip">'+
+    '<div class="cell"><div class="k">Şantiye Şefi</div><div class="v sm">'+(esc(s.chief)||'—')+'</div></div>'+
+    '<div class="cell"><div class="k">Usta(lar)'+(ustaArr.length?' · '+ustaArr.length:'')+'</div><div class="v sm">'+ustaVal+'</div></div>'+
+    '<div class="cell"><div class="k">Ek Personel</div><div class="v sm">'+(esc(s.extra)||'—')+'</div></div>'+
+    '<div class="cell"><div class="k">Toplam Kalem</div><div class="v">'+total+'</div></div>'+
+    '</div></div>');
+  const CHUNK=9;
+  [['done','Tamamlanan İşler'],['prog','Devam Eden İşler'],['plan','Planlanan İşler'],['mat','Malzeme / Lojistik Durumu']].forEach(([cat,label])=>{
+    const arr=s[cat]||[];
+    if(arr.length<=CHUNK){
+      B.push('<div class="blk"><div class="r-sec">'+secHeadHTML(cat,label,arr.length,false)+listHTML(cat,arr)+'</div></div>');
+    } else {
+      for(let i=0;i<arr.length;i+=CHUNK){
+        B.push('<div class="blk"><div class="r-sec">'+secHeadHTML(cat,label,arr.length,i>0)+listHTML(cat,arr.slice(i,i+CHUNK))+'</div></div>');
+      }
+    }
+  });
+  if(s.notes){
+    B.push('<div class="blk"><div class="r-sec"><div class="sh"><span class="bar risk"></span><h4>Engeller / Genel Notlar</h4></div>'+
+      '<div class="r-note">'+esc(s.notes)+'</div></div></div>');
+  }
+  if(s.photos&&s.photos.length){
+    const ph=s.photos;
+    for(let i=0;i<ph.length;i+=2){
+      const pair=ph.slice(i,i+2).map(p=>'<div class="ph"><img src="'+p+'"></div>').join('');
+      const head=(i===0)?'<div class="r-sec"><div class="sh"><span class="bar" style="background:var(--steel)"></span><h4>Saha Fotoğrafları</h4></div></div>':'';
+      B.push('<div class="blk">'+head+'<div class="pg">'+pair+'</div></div>');
+    }
+  }
+  return B;
+}
+
+/* ---- ölçüm + A4 sayfalama ---- */
+var _measEl = null;
+function pxPerMm(){
+  const d=document.createElement('div');
+  d.style.cssText='position:absolute;left:-9999px;top:0;width:100mm;height:0;';
+  document.body.appendChild(d);
+  const v=d.getBoundingClientRect().width/100; d.remove(); return v;
+}
+function measureBlock(html){
+  if(!_measEl){
+    _measEl=document.createElement('div');
+    _measEl.className='pbody';
+    _measEl.style.cssText='position:absolute;left:-9999px;top:0;width:178mm;visibility:hidden;';
+    document.body.appendChild(_measEl);
+  }
+  _measEl.innerHTML=html;
+  const el=_measEl.firstElementChild;
+  return el? el.getBoundingClientRect().height : 0;
+}
+function paginate(blocks){
+  const mm=pxPerMm()||3.78;
+  const BUDGET=255*mm;   // sayfa gövdesi (footer hariç) — A4 güvenli yükseklik
+  const GAP=14;          // bloklar arası boşluk (px)
+  const pages=[]; let page=[], used=0;
+  blocks.forEach(html=>{
+    const h=measureBlock(html)+GAP;
+    if(used+h>BUDGET && page.length){ pages.push(page); page=[]; used=0; }
+    page.push(html); used+=h;
+  });
+  if(page.length) pages.push(page);
+  return pages.length?pages:[[]];
+}
+
+/* ---- RAPOR (önizleme = PDF) ---- */
+function render(){
+  const s=DATA[cur];
+  const pages=paginate(blocksFor(s));
+  const N=pages.length;
+  const foot=(idx)=>'<div class="pfoot">'+
+    '<span class="fl">'+(esc(s.name)||'—')+'</span>'+
+    '<span class="fc">Hazırlayan: '+(esc(s.preparer)||'—')+'</span>'+
+    '<span class="fr">Sayfa '+(idx+1)+' / '+N+'</span></div>';
+  document.getElementById('stage').innerHTML = pages.map((blks,idx)=>
+    '<section class="page"><div class="pbody">'+blks.join('')+'</div>'+foot(idx)+'</section>'
+  ).join('');
+}
+
+/* ---- yazdırma (tek şantiye) ---- */
+function printOne(){ render(); setTimeout(()=>window.print(),60); }
+
+/* ---- formu temizle (yeni şantiye raporu) ---- */
+function resetSite(){
+  if(confirm('Form temizlensin mi? Yeni şantiye raporu için sıfırdan başlanır.')){
+    DATA[cur]=blankSite(''); switchSite(cur); save();
+  }
+}
+
+/* ---- gelen ayrı PDF'leri tek PDF'te birleştir ---- */
+function loadPdfLib(){
+  return new Promise(function(res,rej){
+    if(window.PDFLib) return res();
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+    sc.onload=function(){ res(); };
+    sc.onerror=function(){ rej(new Error('yüklenemedi')); };
+    document.head.appendChild(sc);
+  });
+}
+async function mergePdfs(files){
+  if(!files || files.length<1) return;
+  flash('PDF aracı yükleniyor...');
+  try{ await loadPdfLib(); }catch(e){ alert('PDF birleştirici internetten yüklenemedi. Bu özellik için internet bağlantısı gerekir.'); return; }
+  if(!window.PDFLib){ alert('PDF birleştirici yüklenemedi.'); return; }
+  try{
+    flash('PDF\'ler birleştiriliyor...');
+    const {PDFDocument}=PDFLib;
+    const list=[...files].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+    const out=await PDFDocument.create();
+    for(const f of list){
+      const src=await PDFDocument.load(await f.arrayBuffer());
+      const pages=await out.copyPages(src, src.getPageIndices());
+      pages.forEach(p=>out.addPage(p));
+    }
+    const bytes=await out.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='birlesik-santiye-raporu-'+today()+'.pdf'; a.click();
+    flash(list.length+' PDF birleştirildi ✓');
+  }catch(err){ alert('PDF birleştirilemedi: '+err.message); }
+}
+</script>
+</body>
+</html>
